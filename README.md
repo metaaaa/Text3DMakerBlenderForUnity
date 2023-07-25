@@ -3,5 +3,5 @@
 # UPMInstall
 
 ```
-https://github.com/metaaaa/meta_tools.git?path=Assets/Src
+https://github.com/metaaaa/Text3DMakerBlenderForUnity.git?path=Assets/Src
 ```
