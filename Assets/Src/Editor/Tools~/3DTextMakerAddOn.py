@@ -52,14 +52,14 @@ def savetext(i, text, dirname):
     # save fbx
     # dirname = dirdialog()
     filename = os.path.join(dirname, str(i) + "_" + text + ".fbx")
-    bpy.ops.export_scene.fbx(filepath=filename, use_selection=True)
+    bpy.ops.export_scene.fbx(filepath=filename, use_selection=True, apply_scale_options='FBX_SCALE_ALL')
 
 
 def savetext2(i, text, dirname):
     # save fbx
     # dirname = dirdialog()
     filename = os.path.join(dirname, text + "_" + str(i) + ".fbx")
-    bpy.ops.export_scene.fbx(filepath=filename, use_selection=True)
+    bpy.ops.export_scene.fbx(filepath=filename, use_selection=True, apply_scale_options='FBX_SCALE_ALL')
 
 # tkinterがblenderと競合(?)して使えないのでファイルダイアログは一旦保留
 # def dirdialog():
