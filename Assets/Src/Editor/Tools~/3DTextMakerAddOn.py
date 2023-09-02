@@ -44,6 +44,7 @@ def makesplittext(i, text, fontpath, extrude, offset, bevel_depth, bevel_resolut
     bpy.context.object.data.bevel_depth = bevel_depth
     bpy.context.object.data.bevel_resolution = bevel_resolution
     bpy.ops.transform.rotate(value=-1.5708, orient_axis='X', orient_type='GLOBAL')
+    bpy.ops.object.origin_set(type='GEOMETRY_ORIGIN', center='MEDIAN')
     text_list.append(text)
 
 
