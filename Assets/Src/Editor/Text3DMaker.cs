@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -11,7 +12,7 @@ using Debug = UnityEngine.Debug;
 
 public class Text3DMaker : EditorWindow
 {
-    private static bool IsUpmPackage = true;
+    private static bool IsUpmPackage = false;
 
     const string PackagePath = "Packages/com.metaaaa.text3dmaker/";
     private const string UserSettingsConfigKeyPrefix = "Text3DMaker_";
@@ -23,6 +24,8 @@ public class Text3DMaker : EditorWindow
     private float _offset = 0;
     private float _bevel_depth = 0;
     private int _bevel_resolution = 0;
+    private float _spacing = 0.1f;
+    private List<Vector3> _originOffsets = new List<Vector3>();
 
     [MenuItem("metaaa/Text3DMaker")]
     static void Create()
@@ -40,6 +43,7 @@ public class Text3DMaker : EditorWindow
             (float)Convert.ToDouble(EditorUserSettings.GetConfigValue(GetConfigKey(nameof(_bevel_depth))));
         window._bevel_resolution =
             Convert.ToInt32(EditorUserSettings.GetConfigValue(GetConfigKey(nameof(_bevel_resolution))));
+        window._spacing = (float)Convert.ToDouble(EditorUserSettings.GetConfigValue(GetConfigKey(nameof(_spacing))));
     }
 
     private void OnDisable()
@@ -56,6 +60,8 @@ public class Text3DMaker : EditorWindow
             _bevel_depth.ToString(Thread.CurrentThread.CurrentCulture));
         EditorUserSettings.SetConfigValue(GetConfigKey(nameof(_bevel_resolution)),
             _bevel_resolution.ToString(Thread.CurrentThread.CurrentCulture));
+        EditorUserSettings.SetConfigValue(GetConfigKey(nameof(_spacing)),
+            _spacing.ToString(Thread.CurrentThread.CurrentCulture));
     }
 
     private void OnGUI()
@@ -100,6 +106,7 @@ public class Text3DMaker : EditorWindow
             _bevel_depth = EditorGUILayout.FloatField("bevel_depth", _bevel_depth);
 
             _bevel_resolution = EditorGUILayout.IntField("bevel_resolution", _bevel_resolution);
+            _spacing = EditorGUILayout.FloatField("char spacing", _spacing);
 
             if (GUILayout.Button("process")) Make();
         }
@@ -127,8 +134,6 @@ public class Text3DMaker : EditorWindow
         sb.Append($" --dirname \"{_dirname}\"");
         ExecCommand(_blenderPath, sb.ToString());
 
-        Debug.Log("\"" + _blenderPath + "\"" + sb);
-
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
@@ -148,12 +153,13 @@ public class Text3DMaker : EditorWindow
         {
             var textObj = AssetDatabase.LoadAssetAtPath<GameObject>(AbsoluteToAssetsPath(fileBasePath + i + ".fbx"));
             var mesh = textObj.GetComponent<MeshFilter>().sharedMesh;
-            textObj = Instantiate(textObj, rootTra);
-            textObj.transform.position = new Vector3(offsetX, 0, 0);
             mesh.RecalculateBounds();
             var bounds = mesh.bounds;
             var boundSize = Vector3.Scale(bounds.size, textObj.transform.localScale);
-            offsetX -= boundSize.x;
+            textObj = Instantiate(textObj, rootTra);
+            var originOffset = _originOffsets[i];
+            textObj.transform.position = new Vector3(offsetX - originOffset.x, originOffset.y, 0);
+            offsetX -= boundSize.x + _spacing;
         }
 
         PrefabUtility.SaveAsPrefabAssetAndConnect(root, Path.Combine(basePath, _text + ".prefab"),
@@ -181,7 +187,6 @@ public class Text3DMaker : EditorWindow
 
     private void ExecCommand(string exePath, string arguments)
     {
-        // Debug.Log(arguments);
         ProcessStartInfo startInfo = new ProcessStartInfo()
         {
             FileName = exePath,
@@ -194,8 +199,28 @@ public class Text3DMaker : EditorWindow
         // プロセスを起動する。
         using (Process process = Process.Start(startInfo))
         {
+            Debug.Log("\"" + _blenderPath + "\"" + arguments);
+            string allLine = "";
+            string newLine = "";
+            
+            _originOffsets.Clear();
+            while ((newLine = process?.StandardOutput.ReadLine()) != null)
+            {
+                allLine += newLine + "\n";
+                var offsets = newLine.Split(',');
+                if (offsets[0] == "origin_offset")
+                {
+                    var vec = new Vector3(
+                        float.Parse(offsets[1], CultureInfo.InvariantCulture.NumberFormat),
+                        float.Parse(offsets[2], CultureInfo.InvariantCulture.NumberFormat),
+                        float.Parse(offsets[3], CultureInfo.InvariantCulture.NumberFormat)
+                    );
+                    _originOffsets.Add(vec);
+                }
+            }
+            Debug.Log(allLine);
             process?.StandardOutput.ReadToEnd();
-            process?.WaitForExit(10000);
+            process?.WaitForExit(1000);
         }
     }
 }
