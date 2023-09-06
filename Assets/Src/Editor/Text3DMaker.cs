@@ -12,7 +12,7 @@ using Debug = UnityEngine.Debug;
 
 public class Text3DMaker : EditorWindow
 {
-    private static bool IsUpmPackage = false;
+    private static bool IsUpmPackage = true;
 
     const string PackagePath = "Packages/com.metaaaa.text3dmaker/";
     private const string UserSettingsConfigKeyPrefix = "Text3DMaker_";
